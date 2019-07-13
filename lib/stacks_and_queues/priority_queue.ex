@@ -12,6 +12,9 @@ defmodule PriorityQueue do
   # - Items w/ a priority level will be added above lower level priorities, or below
   #   an item w/ a similar level of priority.
 
+  # TODO: Could optimize by adding a counter in the acc to reduce_while
+  # And use that to split the full queue, and then append the rest to the end
+  # to be able to break out of the reduce_while earlier.
   def new(length) when length <= 3, do: {:error, %{message: "You must provide a length greater than 3."}}
   def new(length \\ 10) do
     %PriorityQueue{length: length, queue: []}
