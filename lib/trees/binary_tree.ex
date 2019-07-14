@@ -28,7 +28,7 @@ defmodule BinaryTree do
   end
 
   def insert(tree = %BinaryTree{root: %BinaryNode{value: root_value}}, value) do
-    case compare_node_value(root_value, value) do
+    case compare_node_value(root_value, value, :traverse_left, :traverse_right) do
       :traverse_left ->
         traversed = [Access.key!(:root), Access.key!(:left_child)]
         choose_traverse_direction(:traverse_left, tree, tree.root, value, traversed)
@@ -45,22 +45,16 @@ defmodule BinaryTree do
   end
 
   def search(tree = %BinaryTree{root: %BinaryNode{value: value}}, search_value) do
-    case value > search_value do
-      true ->
-        search(tree.root.left_child, search_value)
-      false ->
-        search(tree.root.right_child, search_value)
-    end
+    left_search = fn -> search(tree.root.left_child, search_value) end
+    right_search = fn -> search(tree.root.right_child, search_value) end
+    compare_node_value(value, search_value, left_search, right_search)
   end
 
   def search(node = %BinaryNode{value: value}, search_value) when value === search_value, do: node
   def search(node, search_value) do
-    case node.value > search_value do
-      true ->
-        search(node.left_child, search_value)
-      false ->
-        search(node.right_child, search_value)
-    end
+    left_search = fn -> search(node.left_child, search_value) end
+    right_search = fn -> search(node.right_child, search_value) end
+    compare_node_value(node.value, search_value, left_search, right_search)
   end
 
   # You were thinking traversal here.
@@ -72,13 +66,15 @@ defmodule BinaryTree do
   def insert_left(tree, nil, value, traversed), do: handle_new_node_insert(tree, traversed, value)
   def insert_left(tree, node = %BinaryNode{value: node_value}, value, traversed) do
     traversed = List.flatten([traversed | [Access.key!(:left_child)]])
-    compare_node_value(node_value, value) |> choose_traverse_direction(tree, node, value, traversed)
+    compare_node_value(node_value, value, :traverse_left, :traverse_right)
+    |> choose_traverse_direction(tree, node, value, traversed)
   end
 
   def insert_right(tree, nil, value, traversed), do: handle_new_node_insert(tree, traversed, value)
   def insert_right(tree, node = %BinaryNode{value: node_value}, value, traversed) do
     traversed = List.flatten([traversed | [Access.key!(:right_child)]])
-    compare_node_value(node_value, value) |> choose_traverse_direction(tree, node, value, traversed)
+    compare_node_value(node_value, value, :traverse_left, :traverse_right)
+    |> choose_traverse_direction(tree, node, value, traversed)
   end
 
   defp create_new_node(value), do: fn _ -> {nil, %BinaryNode{value: value, left_child: nil, right_child: nil}} end
@@ -88,12 +84,21 @@ defmodule BinaryTree do
     updated_tree
   end
 
-  defp compare_node_value(node_value, value) do
-    case value < node_value do
+  defp compare_node_value(node_value, value, left_case, right_case) when is_atom(left_case) and is_atom(right_case) do
+    case node_value > value do
       true ->
-        :traverse_left
+        left_case
       false ->
-        :traverse_right
+        right_case
+    end
+  end
+
+  defp compare_node_value(node_value, value, left_case, right_case) do
+    case node_value > value do
+      true ->
+        left_case.()
+      false ->
+        right_case.()
     end
   end
 
