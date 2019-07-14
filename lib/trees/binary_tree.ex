@@ -39,6 +39,36 @@ defmodule BinaryTree do
     end
   end
 
+  def search(nil, _search_value), do: "That value is not in the tree."
+  def search(tree = %BinaryTree{root: %BinaryNode{value: value}}, search_value) when value === search_value do
+    tree.root
+  end
+
+  def search(tree = %BinaryTree{root: %BinaryNode{value: value}}, search_value) do
+    case value > search_value do
+      true ->
+        search(tree.root.left_child, search_value)
+      false ->
+        search(tree.root.right_child, search_value)
+    end
+  end
+
+  def search(node = %BinaryNode{value: value}, search_value) when value === search_value, do: node
+  def search(node, search_value) do
+    case node.value > search_value do
+      true ->
+        search(node.left_child, search_value)
+      false ->
+        search(node.right_child, search_value)
+    end
+  end
+
+  # You were thinking traversal here.
+  # search(:left, tree.root, search_value)
+
+  ##############
+  ## PRIVATES ##
+  ##############
   def insert_left(tree, nil, value, traversed), do: handle_new_node_insert(tree, traversed, value)
   def insert_left(tree, node = %BinaryNode{value: node_value}, value, traversed) do
     traversed = List.flatten([traversed | [Access.key!(:left_child)]])
@@ -74,6 +104,4 @@ defmodule BinaryTree do
   defp choose_traverse_direction(:traverse_right, tree, node, value, traversed) do
     BinaryTree.insert_right(tree, node.right_child, value, traversed)
   end
-
-  # def search(tree, search_value)
 end
