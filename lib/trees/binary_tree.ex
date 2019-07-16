@@ -35,7 +35,6 @@ defmodule BinaryTree do
       :traverse_right ->
         traversed = [Access.key!(:root), Access.key!(:right_child)]
         choose_traverse_direction(:traverse_right, tree, tree.root, value, traversed)
-
     end
   end
 
@@ -57,21 +56,82 @@ defmodule BinaryTree do
     compare_node_value(node.value, search_value, left_search, right_search)
   end
 
-  # You were thinking traversal here.
-  # search(:left, tree.root, search_value)
+  # def traverse(:pre_order)
+
+  def traverse(:in_order, tree, func) when is_atom(order) and is_function(func) do
+    traverse(:in_order, [tree.root], tree.root, func, :left_traverse)
+  end
+
+  @doc """
+    We build up the parent_nodes list, adding the most recently traversed node to the front,
+    in order to facilitate unraveling back up the tree (and visiting the parent and right_childs)
+    once we hit the leftmost node of the tree.
+  """
+  def traverse(:in_order, parent_nodes, node, func, :left_traverse) do
+    case traverse(:in_order, [node | parent_nodes], node.left_child, func, :left_traverse) do
+      :end_of_tree ->
+        [head | tail] = parent_nodes
+        traverse(:in_order, tail, head, func, :parent_node)
+    end
+  end
+
+  def traverse(:in_order, parent_nodes, node = %BinaryNode{left_child: nil, right_child: nil}, func, :left_traverse) do
+    # Going to run with the assumption that the callback func will just do something along the lines
+    # of just IO.puts the values in the tree, rather than transform the values.
+    func.(node.value)
+    :end_of_tree
+  end
+
+  def traverse(:in_order, parent_nodes, node = %BinaryNode{left_child: nil, right_child: right_child}, func, :left_traverse) do
+    # Going to run with the assumption that the callback func will just do something along the lines
+    # of just IO.puts the values in the tree, rather than transform the values.
+    func.(node.value)
+    :end_of_tree
+  end
+
+  def traverse(:in_order, parent_nodes, node, func, :left_child) do
+
+  end
+
+  def traverse(:in_order, parent_nodes, node, func, :parent_node) do
+    func.(node.value)
+    :right_child
+  end
+
+  # TODO: Due to the duplication of these pattern matches... I think introducing guards
+  # w/ names such as: can_traverse_left & can_traverse_right will be ideal...
+  # AND creating a reusable helper function that runs the callback function and returns the atom
+  # of the next operation to perform. This should help make these functions become a single line.
+  # and facilitate readability as all of the rules can be grouped closer together.
+  def traverse(:in_order, parent_nodes, node = %{left_child: nil, right_child: nil}, func, :right_child) do
+    func.(node.value)
+    :parent_node
+  end
+
+  def traverse(:in_order, parent_nodes, node = %{left_child: left_child, right_child: nil}, func, :right_child) do
+    func.(node.value)
+    :parent_node
+  end
+
+  def traverse(:in_order, parent_nodes, node = %{left_child: nil, right_child: right_child}, func, :right_child) do
+    func.(node.value)
+    :right_child
+  end
+
+  # def traverse(:post_order)
 
   ##############
   ## PRIVATES ##
   ##############
-  def insert_left(tree, nil, value, traversed), do: handle_new_node_insert(tree, traversed, value)
-  def insert_left(tree, node = %BinaryNode{value: node_value}, value, traversed) do
+  defp insert_left(tree, nil, value, traversed), do: handle_new_node_insert(tree, traversed, value)
+  defp insert_left(tree, node = %BinaryNode{value: node_value}, value, traversed) do
     traversed = List.flatten([traversed | [Access.key!(:left_child)]])
     compare_node_value(node_value, value, :traverse_left, :traverse_right)
     |> choose_traverse_direction(tree, node, value, traversed)
   end
 
-  def insert_right(tree, nil, value, traversed), do: handle_new_node_insert(tree, traversed, value)
-  def insert_right(tree, node = %BinaryNode{value: node_value}, value, traversed) do
+  defp insert_right(tree, nil, value, traversed), do: handle_new_node_insert(tree, traversed, value)
+  defp insert_right(tree, node = %BinaryNode{value: node_value}, value, traversed) do
     traversed = List.flatten([traversed | [Access.key!(:right_child)]])
     compare_node_value(node_value, value, :traverse_left, :traverse_right)
     |> choose_traverse_direction(tree, node, value, traversed)
@@ -93,7 +153,7 @@ defmodule BinaryTree do
     end
   end
 
-  defp compare_node_value(node_value, value, left_case, right_case) do
+  defp compare_node_value(node_value, value, left_case, right_case) when is_function(left_case) and is_function(right_case) do
     case node_value > value do
       true ->
         left_case.()
@@ -103,10 +163,10 @@ defmodule BinaryTree do
   end
 
   defp choose_traverse_direction(:traverse_left, tree, node, value, traversed) do
-    BinaryTree.insert_left(tree, node.left_child, value, traversed)
+    insert_left(tree, node.left_child, value, traversed)
   end
 
   defp choose_traverse_direction(:traverse_right, tree, node, value, traversed) do
-    BinaryTree.insert_right(tree, node.right_child, value, traversed)
+    insert_right(tree, node.right_child, value, traversed)
   end
 end
