@@ -53,6 +53,16 @@ defmodule BinaryTreeTest do
     |> BinaryTree.insert(120)
     |> BinaryTree.insert(40)
 
+    # Desired logs:
+    # 40, 80, 90, 100, 110, 120
+
+    # Current getting:
+    # 40, 80, 90, 40, 80, 90, 100, 110, 120, 40, 80, 90, 100, 110, 120
+
+    # The problem:
+    # When unraveling... and doing Enum.each on all of the parent nodes in the list,
+    # It's currently traversing each of those nodes until it reaches left_child: nil and right_child: nil
+
     assert @final_inserted_tree == tree
   end
 
@@ -72,5 +82,17 @@ defmodule BinaryTreeTest do
     tree = BinaryTree.new()
 
     assert @no_results_for_search_response == BinaryTree.search(tree, 1000)
+  end
+
+  test "Can traverse the tree in order" do
+    tree = BinaryTree.new()
+    |> BinaryTree.insert(100)
+    |> BinaryTree.insert(90)
+    |> BinaryTree.insert(110)
+    |> BinaryTree.insert(80)
+    |> BinaryTree.insert(120)
+    |> BinaryTree.insert(40)
+
+    assert "boom" == BinaryTree.traverse(:in_order, tree, fn x -> IO.puts(x) end)
   end
 end

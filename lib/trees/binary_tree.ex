@@ -58,65 +58,50 @@ defmodule BinaryTree do
 
   # def traverse(:pre_order)
 
-  def traverse(:in_order, tree, func) when is_atom(order) and is_function(func) do
-    traverse(:in_order, [tree.root], tree.root, func, :left_traverse)
+  # Entrypoint for the :in_order traverse
+  def traverse(:in_order, _tree = %{root: root}, func) when is_function(func) do
+    traverse(:in_order, [root], root, func, :left_traverse)
   end
 
+
+  # NOTE: 08/20/2019
+  # Making progress on there... just a few pattern matches to handle exceptional cases,
+  # but the recursion logic is in place to handle visiting the nodes in order w/out revisiting a node twice.
+  # However, still not tail call optimized.
   @doc """
-    We build up the parent_nodes list, adding the most recently traversed node to the front,
-    in order to facilitate unraveling back up the tree (and visiting the parent and right_childs)
-    once we hit the leftmost node of the tree.
+   Our base case, and we've built up the parent nodelist.
+   Now we must only traverse the right subtrees of every node within that list,
+   And ONLY traverse the left subtrees of nodes contained within the right subtree. (To prevent revisiting nodes.)
   """
-  def traverse(:in_order, parent_nodes, node, func, :left_traverse) do
-    case traverse(:in_order, [node | parent_nodes], node.left_child, func, :left_traverse) do
-      :end_of_tree ->
-        [head | tail] = parent_nodes
-        traverse(:in_order, tail, head, func, :parent_node)
-    end
-  end
-
-  def traverse(:in_order, parent_nodes, node = %BinaryNode{left_child: nil, right_child: nil}, func, :left_traverse) do
+  def traverse(:in_order, parent_nodes, node = %BinaryNode{left_child: nil}, func, :left_traverse) when is_function(func) do
     # Going to run with the assumption that the callback func will just do something along the lines
-    # of just IO.puts the values in the tree, rather than transform the values.
+    # of just IO.puts the values in the tree, rather than transform the values. (but if it did transform values... then
+    # I'd need to maintain the parent node so that I could reassign the node w/ the updated value as it's left/right_child).
     func.(node.value)
-    :end_of_tree
+    Enum.map(parent_nodes, fn parent_node ->
+      # traverse_right_subtree_nodes(:in_order, [parent_node.right_child], parent_node.right_child, func)
+      traverse(:in_order, [parent_node.right_child], parent_node.right_child, func, :left_traverse)
+      func.(parent_node.left_child.value)
+      func.(parent_node.value)
+      func.(parent_node.right_child.value)
+    end)
   end
 
-  def traverse(:in_order, parent_nodes, node = %BinaryNode{left_child: nil, right_child: right_child}, func, :left_traverse) do
-    # Going to run with the assumption that the callback func will just do something along the lines
-    # of just IO.puts the values in the tree, rather than transform the values.
-    func.(node.value)
-    :end_of_tree
+  def traverse(:in_order, parent_nodes, node = %{left_child: left_child}, func, :left_traverse) when is_function(func) do
+    traverse(:in_order, [node | parent_nodes], left_child, func, :left_traverse)
   end
 
-  def traverse(:in_order, parent_nodes, node, func, :left_child) do
+  # def traverse_right_subtree_nodes(:in_order, parent_nodes, node = %{left_child: left_child, right_child: right_child}, func) do
+  #   traverse(:in_order, [parent_node], left_child, func, :left_traverse)
+    # func.(left_child.value)
+    # func.(node.value)
+    # func.(right_child.value)
+  #   # traverse_right_subtree_nodes(:in_order, [parent_nodes], parent_node, func)
+  # end
 
-  end
+  # def traverse_right_subtree_nodes(:in_order, [parent_node | parent_nodes], node = %{left_child: nil}) do
 
-  def traverse(:in_order, parent_nodes, node, func, :parent_node) do
-    func.(node.value)
-    :right_child
-  end
-
-  # TODO: Due to the duplication of these pattern matches... I think introducing guards
-  # w/ names such as: can_traverse_left & can_traverse_right will be ideal...
-  # AND creating a reusable helper function that runs the callback function and returns the atom
-  # of the next operation to perform. This should help make these functions become a single line.
-  # and facilitate readability as all of the rules can be grouped closer together.
-  def traverse(:in_order, parent_nodes, node = %{left_child: nil, right_child: nil}, func, :right_child) do
-    func.(node.value)
-    :parent_node
-  end
-
-  def traverse(:in_order, parent_nodes, node = %{left_child: left_child, right_child: nil}, func, :right_child) do
-    func.(node.value)
-    :parent_node
-  end
-
-  def traverse(:in_order, parent_nodes, node = %{left_child: nil, right_child: right_child}, func, :right_child) do
-    func.(node.value)
-    :right_child
-  end
+  # end
 
   # def traverse(:post_order)
 
