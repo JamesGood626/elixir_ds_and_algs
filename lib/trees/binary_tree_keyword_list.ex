@@ -9,6 +9,7 @@ defmodule BinaryTreeKeywordList do
     [value: n, left_child: [], right_child: []]
   end
 
+  # Yeah, this wouldn't be tailrec...
   def add(bst, n) do
     List.foldl(bst, [], fn {key, node}, acc -> [{key, traverse(node, n)} | acc] end)
   end
