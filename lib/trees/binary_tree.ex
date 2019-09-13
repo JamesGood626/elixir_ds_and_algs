@@ -32,6 +32,7 @@ defmodule BinaryTree do
       :traverse_left ->
         traversed = [Access.key!(:root), Access.key!(:left_child)]
         choose_traverse_direction(:traverse_left, tree, tree.root, value, traversed)
+
       :traverse_right ->
         traversed = [Access.key!(:root), Access.key!(:right_child)]
         choose_traverse_direction(:traverse_right, tree, tree.root, value, traversed)
@@ -39,7 +40,9 @@ defmodule BinaryTree do
   end
 
   def search(nil, _search_value), do: "That value is not in the tree."
-  def search(tree = %BinaryTree{root: %BinaryNode{value: value}}, search_value) when value === search_value do
+
+  def search(tree = %BinaryTree{root: %BinaryNode{value: value}}, search_value)
+      when value === search_value do
     tree.root
   end
 
@@ -50,6 +53,7 @@ defmodule BinaryTree do
   end
 
   def search(node = %BinaryNode{value: value}, search_value) when value === search_value, do: node
+
   def search(node, search_value) do
     left_search = fn -> search(node.left_child, search_value) end
     right_search = fn -> search(node.right_child, search_value) end
@@ -63,7 +67,6 @@ defmodule BinaryTree do
     traverse(:in_order, [root], root, func, :left_traverse)
   end
 
-
   # NOTE: 08/20/2019
   # Making progress on there... just a few pattern matches to handle exceptional cases,
   # but the recursion logic is in place to handle visiting the nodes in order w/out revisiting a node twice.
@@ -73,75 +76,83 @@ defmodule BinaryTree do
    Now we must only traverse the right subtrees of every node within that list,
    And ONLY traverse the left subtrees of nodes contained within the right subtree. (To prevent revisiting nodes.)
   """
-  def traverse(:in_order, parent_nodes, node = %BinaryNode{left_child: nil}, func, :left_traverse) when is_function(func) do
+  def traverse(:in_order, parent_nodes, node = %BinaryNode{left_child: nil}, func, :left_traverse)
+      when is_function(func) do
     # Going to run with the assumption that the callback func will just do something along the lines
     # of just IO.puts the values in the tree, rather than transform the values. (but if it did transform values... then
     # I'd need to maintain the parent node so that I could reassign the node w/ the updated value as it's left/right_child).
     func.(node.value)
+
     Enum.map(parent_nodes, fn parent_node ->
-      # traverse_right_subtree_nodes(:in_order, [parent_node.right_child], parent_node.right_child, func)
-      traverse(:in_order, [parent_node.right_child], parent_node.right_child, func, :left_traverse)
+      traverse(
+        :in_order,
+        [parent_node.right_child],
+        parent_node.right_child,
+        func,
+        :left_traverse
+      )
+
       func.(parent_node.left_child.value)
       func.(parent_node.value)
       func.(parent_node.right_child.value)
     end)
   end
 
-  def traverse(:in_order, parent_nodes, node = %{left_child: left_child}, func, :left_traverse) when is_function(func) do
+  def traverse(:in_order, parent_nodes, node = %{left_child: left_child}, func, :left_traverse)
+      when is_function(func) do
     traverse(:in_order, [node | parent_nodes], left_child, func, :left_traverse)
   end
-
-  # def traverse_right_subtree_nodes(:in_order, parent_nodes, node = %{left_child: left_child, right_child: right_child}, func) do
-  #   traverse(:in_order, [parent_node], left_child, func, :left_traverse)
-    # func.(left_child.value)
-    # func.(node.value)
-    # func.(right_child.value)
-  #   # traverse_right_subtree_nodes(:in_order, [parent_nodes], parent_node, func)
-  # end
-
-  # def traverse_right_subtree_nodes(:in_order, [parent_node | parent_nodes], node = %{left_child: nil}) do
-
-  # end
 
   # def traverse(:post_order)
 
   ##############
   ## PRIVATES ##
   ##############
-  defp insert_left(tree, nil, value, traversed), do: handle_new_node_insert(tree, traversed, value)
+  defp insert_left(tree, nil, value, traversed),
+    do: handle_new_node_insert(tree, traversed, value)
+
   defp insert_left(tree, node = %BinaryNode{value: node_value}, value, traversed) do
     traversed = List.flatten([traversed | [Access.key!(:left_child)]])
+
     compare_node_value(node_value, value, :traverse_left, :traverse_right)
     |> choose_traverse_direction(tree, node, value, traversed)
   end
 
-  defp insert_right(tree, nil, value, traversed), do: handle_new_node_insert(tree, traversed, value)
+  defp insert_right(tree, nil, value, traversed),
+    do: handle_new_node_insert(tree, traversed, value)
+
   defp insert_right(tree, node = %BinaryNode{value: node_value}, value, traversed) do
     traversed = List.flatten([traversed | [Access.key!(:right_child)]])
+
     compare_node_value(node_value, value, :traverse_left, :traverse_right)
     |> choose_traverse_direction(tree, node, value, traversed)
   end
 
-  defp create_new_node(value), do: fn _ -> {nil, %BinaryNode{value: value, left_child: nil, right_child: nil}} end
+  defp create_new_node(value),
+    do: fn _ -> {nil, %BinaryNode{value: value, left_child: nil, right_child: nil}} end
 
   defp handle_new_node_insert(tree, traversed, value) do
     {_, updated_tree} = get_and_update_in(tree, traversed, create_new_node(value))
     updated_tree
   end
 
-  defp compare_node_value(node_value, value, left_case, right_case) when is_atom(left_case) and is_atom(right_case) do
+  defp compare_node_value(node_value, value, left_case, right_case)
+       when is_atom(left_case) and is_atom(right_case) do
     case node_value > value do
       true ->
         left_case
+
       false ->
         right_case
     end
   end
 
-  defp compare_node_value(node_value, value, left_case, right_case) when is_function(left_case) and is_function(right_case) do
+  defp compare_node_value(node_value, value, left_case, right_case)
+       when is_function(left_case) and is_function(right_case) do
     case node_value > value do
       true ->
         left_case.()
+
       false ->
         right_case.()
     end
@@ -154,4 +165,10 @@ defmodule BinaryTree do
   defp choose_traverse_direction(:traverse_right, tree, node, value, traversed) do
     insert_right(tree, node.right_child, value, traversed)
   end
+
+  def create_list() do
+    list = [root: [value: 100, left_child: [value: 90, left_child: [], right_child: []], right_child: []]]
+  end
 end
+
+
